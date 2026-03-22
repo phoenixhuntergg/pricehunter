@@ -1,0 +1,19 @@
+{
+  "name": "PriceHunter Pro",
+  "short_name": "PriceHunter",
+  "description": "Traccia prezzi su Amazon, eBay, MediaWorld, ToyCenter e qualsiasi store",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#04080f",
+  "theme_color": "#04080f",
+  "orientation": "portrait-primary",
+  "lang": "it-IT",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%2304080f'/><text x='96' y='132' font-size='108' text-anchor='middle'>🎯</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
