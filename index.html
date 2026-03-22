@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PriceHunter Pro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#04080f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PriceHunter">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#04080f;--s1:#0c1322;--s2:#131d30;--s3:#1a2640;
+  --border:#1e3052;--accent:#00e5ff;--accent2:#ff4757;
+  --green:#2ed573;--yellow:#ffa502;--violet:#a78bfa;
+  --text:#e8edf5;--muted:#4a6080;--muted2:#6b88a8;
+  --r:12px;--r-sm:8px;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --safe-top:env(safe-area-inset-top);--safe-bot:env(safe-area-inset-bottom);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+button{font-family:var(--font);cursor:pointer;border:none;outline:none}
+input,select,textarea{font-family:var(--font);outline:none}
+a{color:inherit;text-decoration:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--s3);border-radius:2px}
+
+/* ── LAYOUT ── */
+#app{display:flex;min-height:100dvh}
+#sidebar{
+  width:220px;min-height:100dvh;background:var(--s1);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:100;
+  padding-top:calc(var(--safe-top) + 0px)
+}
+.sidebar-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#00e5ff22,#00e5ff44);border:1px solid #00e5ff44;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 18px #00e5ff22}
+.logo-text{font-size:15px;font-weight:800;letter-spacing:-.02em}
+.logo-text span{color:var(--accent)}
+.logo-sub{font-size:9px;color:var(--muted);letter-spacing:.15em;margin-top:1px;font-family:var(--mono)}
+.sidebar-nav{flex:1;padding:10px 0;overflow-y:auto}
+.nav-sec{padding:5px 16px 3px;font-size:9px;color:var(--muted);letter-spacing:.15em;font-family:var(--mono);text-transform:uppercase}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 14px;margin:2px 8px;border-radius:var(--r-sm);font-size:13px;font-weight:500;color:var(--muted2);cursor:pointer;transition:all .15s;position:relative}
+.ni:hover{background:var(--s2);color:var(--text)}
+.ni.active{background:linear-gradient(135deg,#00e5ff18,#00e5ff08);color:var(--accent)}
+.ni.active::before{content:'';position:absolute;left:0;top:20%;bottom:20%;width:3px;background:var(--accent);border-radius:0 2px 2px 0;box-shadow:0 0 8px var(--accent)}
+.ni-icon{font-size:15px;width:19px;text-align:center}
+.ni-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;font-family:var(--mono)}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border)}
+.status-row{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);font-family:var(--mono)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:all .3s;flex-shrink:0}
+.sdot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+.sdot.warn{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+
+#main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100dvh}
+#topbar{height:58px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 22px;gap:12px;position:sticky;top:0;z-index:50}
+#topbar-title{font-size:17px;font-weight:700;flex:1}
+.topbar-actions{display:flex;gap:8px}
+
+/* ── BUTTONS ── */
+.btn{display:flex;align-items:center;gap:6px;padding:8px 15px;border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn-primary{background:linear-gradient(135deg,#00c8e0,#00e5ff);color:#04080f;box-shadow:0 4px 14px #00e5ff2a}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px #00e5ff3a}
+.btn-ghost{background:var(--s2);color:var(--muted2);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);background:var(--s3)}
+.btn-danger{background:#ff475718;color:var(--accent2);border:1px solid #ff475728}
+.btn-danger:hover{background:#ff475728}
+.btn-violet{background:#a78bfa18;color:var(--violet);border:1px solid #a78bfa28}
+.btn-violet:hover{background:#a78bfa28}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+#page{flex:1;padding:22px;overflow-y:auto}
+
+/* ── CARDS ── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.card-sm{padding:12px 14px}
+
+/* ── STATS GRID ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:15px 18px;position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc-cyan::after{background:linear-gradient(90deg,var(--accent),transparent)}
+.sc-red::after{background:linear-gradient(90deg,var(--accent2),transparent)}
+.sc-green::after{background:linear-gradient(90deg,var(--green),transparent)}
+.sc-yellow::after{background:linear-gradient(90deg,var(--yellow),transparent)}
+.stat-lbl{font-size:10px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono)}
+.stat-val{font-size:26px;font-weight:800;margin:3px 0;font-family:var(--mono)}
+.sv-cyan{color:var(--accent)}.sv-red{color:var(--accent2)}.sv-green{color:var(--green)}.sv-yellow{color:var(--yellow)}
+.stat-sub{font-size:10px;color:var(--muted2)}
+
+/* ── SECTION HEADER ── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sh-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
+
+/* ── PRODUCTS ── */
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.pc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:15px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.pc:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 8px 22px #00e5ff11}
+.pc.fire{border-color:#2ed57344}
+.pc.fire::before{content:'🎯 SOTTO TARGET';position:absolute;top:0;right:0;background:var(--green);color:#04080f;font-size:8px;font-weight:800;padding:3px 8px;border-radius:0 var(--r) 0 var(--r);letter-spacing:.1em}
+.pc-hdr{display:flex;gap:11px;align-items:flex-start;margin-bottom:10px}
+.pc-em{font-size:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:var(--s2);border-radius:var(--r-sm);flex-shrink:0}
+.pc-nm{font-size:13px;font-weight:600;line-height:1.3;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pc-cat{font-size:10px;color:var(--muted);background:var(--s2);display:inline-block;padding:1px 6px;border-radius:8px}
+.pc-prices{display:flex;flex-direction:column;gap:3px}
+.pc-pr{display:flex;justify-content:space-between;align-items:center}
+.pc-store{font-size:10px;color:var(--muted2)}
+.pc-amt{font-size:13px;font-weight:600;font-family:var(--mono)}
+.pc-amt.best{color:var(--green)}
+.pc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.alert-badge{font-size:9px;padding:2px 6px;border-radius:8px;font-weight:700}
+.ab-on{background:#00e5ff15;color:var(--accent);border:1px solid #00e5ff28}
+.ab-off{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+
+/* ── FORMS ── */
+.fg{margin-bottom:14px}
+.fl{font-size:11px;color:var(--muted2);letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 13px;color:var(--text);font-size:14px;transition:all .15s}
+.fi:focus{border-color:var(--accent);box-shadow:0 0 0 3px #00e5ff0e}
+.fi::placeholder{color:var(--muted)}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.fs{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 13px;color:var(--text);font-size:14px;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6080' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;cursor:pointer}
+.fi-note{font-size:10px;color:var(--muted);margin-top:4px}
+.fi-note a{color:var(--accent)}
+
+/* ── CHART ── */
+.chart-wrap{position:relative;height:190px}
+
+/* ── DETAIL ── */
+.det-hdr{display:flex;gap:14px;align-items:flex-start;margin-bottom:18px}
+.det-em{font-size:44px;width:68px;height:68px;background:var(--s2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;border:1px solid var(--border);flex-shrink:0}
+.det-nm{font-size:19px;font-weight:700;line-height:1.2;margin-bottom:5px}
+.det-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+.tag{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.t-cat{background:var(--s2);color:var(--muted2);border:1px solid var(--border)}
+.t-on{background:#00e5ff12;color:var(--accent);border:1px solid #00e5ff28}
+.t-off{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.stores-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px;margin-bottom:18px}
+.sc{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;transition:all .15s}
+.sc.best{border-color:#2ed57344;background:#052e1620}
+.sc-nm{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.sc-price{font-size:21px;font-weight:700;font-family:var(--mono);margin-bottom:3px}
+.sc-price.best{color:var(--green)}
+.sc-meta{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.sc-link{font-size:10px;color:var(--accent);margin-top:5px;display:inline-block}
+
+/* ── ALERTS ── */
+.alerts-list{display:flex;flex-direction:column;gap:9px}
+.al{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:13px 15px;display:flex;align-items:center;gap:12px}
+.al.fired{border-color:#2ed57344;background:#052e1615}
+.al-em{font-size:26px;flex-shrink:0}
+.al-info{flex:1;min-width:0}
+.al-nm{font-size:13px;font-weight:600;margin-bottom:2px}
+.al-det{font-size:11px;color:var(--muted2);font-family:var(--mono)}
+.toggle{position:relative;width:36px;height:21px;cursor:pointer;margin-left:6px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.t-sl{position:absolute;inset:0;background:var(--s3);border-radius:10px;transition:.3s;border:1px solid var(--border)}
+.t-sl::before{content:'';position:absolute;width:15px;height:15px;left:2px;top:2px;background:var(--muted);border-radius:50%;transition:.3s}
+.toggle input:checked+.t-sl{background:#00e5ff30;border-color:#00e5ff44}
+.toggle input:checked+.t-sl::before{transform:translateX(15px);background:var(--accent)}
+
+/* ── PLATFORMS MANAGER ── */
+.plat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.plat-card{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:13px;position:relative}
+.plat-card.custom{border-color:var(--violet)28}
+.plat-card .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:2px;opacity:.5}
+.plat-card .del-btn:hover{opacity:1;color:var(--accent2)}
+.plat-em{font-size:24px;margin-bottom:6px}
+.plat-nm{font-size:13px;font-weight:700;margin-bottom:2px}
+.plat-domain{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.plat-sel{font-size:9px;color:var(--muted2);font-family:var(--mono);margin-top:4px;word-break:break-all}
+.plat-badge{font-size:9px;padding:1px 5px;border-radius:4px;margin-top:6px;display:inline-block}
+.pb-builtin{background:#00e5ff12;color:var(--accent)}
+.pb-custom{background:#a78bfa18;color:var(--violet)}
+
+/* ── HISTORY ── */
+.hist-list{display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto}
+.hist-row{display:flex;justify-content:space-between;align-items:center;padding:5px 9px;background:var(--s2);border-radius:5px;font-size:11px}
+.hist-date{color:var(--muted);font-family:var(--mono)}
+.hist-store{color:var(--muted2)}
+.hist-price{color:var(--text);font-family:var(--mono);font-weight:600}
+
+/* ── DEALS ── */
+.deals-list{display:flex;flex-direction:column;gap:7px}
+.deal-row{display:flex;align-items:center;gap:11px;padding:9px 13px;background:var(--s2);border-radius:var(--r-sm);cursor:pointer;transition:all .15s;border:1px solid transparent}
+.deal-row:hover{border-color:var(--border)}
+.deal-em{font-size:20px}
+.deal-info{flex:1;min-width:0}
+.deal-nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal-store{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.deal-price{font-size:14px;font-weight:700;font-family:var(--mono);color:var(--green)}
+.deal-sav{font-size:9px;background:var(--green);color:#04080f;padding:1px 5px;border-radius:8px;font-weight:700}
+.deal-chev{color:var(--muted);font-size:12px}
+
+/* ── TOAST ── */
+#tc{position:fixed;bottom:calc(20px + var(--safe-bot));right:16px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{padding:11px 15px;border-radius:var(--r-sm);font-size:12px;font-weight:600;animation:tin .3s ease;pointer-events:all;max-width:280px}
+.ts{background:var(--green);color:#04080f}.te{background:var(--accent2);color:#fff}.ti{background:var(--s3);color:var(--text);border:1px solid var(--border)}
+@keyframes tin{from{transform:translateX(80px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;background:#04080fcc;backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fi .2s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:16px;width:100%;max-width:460px;max-height:88dvh;overflow-y:auto;animation:mi .25s ease}
+@keyframes mi{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-hdr{padding:18px 18px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-ttl{font-size:15px;font-weight:700}
+.modal-x{background:var(--s2);border:none;color:var(--muted2);width:26px;height:26px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.modal-body{padding:0 18px 18px}
+
+/* ── MOBILE NAV ── */
+#bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--s1);border-top:1px solid var(--border);padding:8px 0 calc(8px + var(--safe-bot));z-index:100}
+.bnav-items{display:flex;justify-content:space-around}
+.bni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;border-radius:var(--r-sm);font-size:9px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;letter-spacing:.05em;text-transform:uppercase;font-family:var(--mono);position:relative}
+.bni-icon{font-size:19px}
+.bni.active{color:var(--accent)}
+.bni-badge{position:absolute;top:3px;right:6px;background:var(--accent2);color:#fff;font-size:8px;font-weight:700;padding:0 3px;border-radius:7px;min-width:13px;text-align:center}
+
+#mob-hdr{display:none;background:var(--s1);border-bottom:1px solid var(--border);padding:calc(var(--safe-top) + 11px) 15px 11px;align-items:center;gap:9px;position:sticky;top:0;z-index:50}
+.mob-logo{font-size:15px;font-weight:800;flex:1}.mob-logo span{color:var(--accent)}
+
+/* ── UTILS ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.mb4{margin-bottom:4px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb18{margin-bottom:18px}.mb22{margin-bottom:22px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}
+.fw7{font-weight:700}.mono{font-family:var(--mono)}.sm{font-size:12px}.xs{font-size:10px}
+.muted{color:var(--muted2)}.accent{color:var(--accent)}.green{color:var(--green)}.red{color:var(--accent2)}.yellow{color:var(--yellow)}.violet{color:var(--violet)}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.badge{font-size:10px;padding:2px 7px;border-radius:8px;font-weight:600}
+.bc{background:#00e5ff12;color:var(--accent);border:1px solid #00e5ff22}
+.bg{background:#2ed57312;color:var(--green);border:1px solid #2ed57322}
+.br{background:#ff475712;color:var(--accent2);border:1px solid #ff475722}
+.by{background:#ffa50212;color:var(--yellow);border:1px solid #ffa50222}
+.bv{background:#a78bfa12;color:var(--violet);border:1px solid #a78bfa22}
+.empty-state{text-align:center;padding:50px 20px}
+.es-icon{font-size:44px;margin-bottom:14px;opacity:.5}
+.es-title{font-size:15px;font-weight:600;color:var(--muted2);margin-bottom:5px}
+.es-sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+
+/* ── DEPLOY GUIDE ── */
+.step-row{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.step-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#04080f;flex-shrink:0;margin-top:1px}
+.step-content{flex:1}
+.step-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.step-sub{font-size:11px;color:var(--muted);line-height:1.6}
+code{background:var(--s2);padding:1px 5px;border-radius:4px;color:var(--accent);font-family:var(--mono);font-size:11px}
+.code-block{background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;font-family:var(--mono);font-size:11px;color:var(--muted2);margin:8px 0;line-height:1.7;white-space:pre-wrap;word-break:break-all}
+.url-display{background:var(--s2);border:1px solid var(--accent);border-radius:var(--r-sm);padding:10px 14px;font-family:var(--mono);font-size:12px;color:var(--accent);word-break:break-all;cursor:pointer}
+.url-display:hover{background:var(--s3)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  #sidebar{display:none}#main{margin-left:0}#topbar{display:none}
+  #bnav{display:block}#mob-hdr{display:flex}
+  #page{padding:12px 12px calc(76px + var(--safe-bot))}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .fr{grid-template-columns:1fr}.stores-grid{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}.det-hdr{flex-direction:column}
+}
+@media(max-width:480px){
+  .stats-grid{gap:9px}.products-grid{grid-template-columns:1fr}.stores-grid{grid-template-columns:1fr}
+  .plat-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SIDEBAR desktop -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-wrap">
+        <div class="logo-icon">🎯</div>
+        <div><div class="logo-text">Price<span>Hunter</span></div><div class="logo-sub">PRO v2.0</div></div>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-sec">Principale</div>
+      <div class="ni active" onclick="nav('dashboard')" id="n-dashboard"><span class="ni-icon">📊</span>Dashboard</div>
+      <div class="ni" onclick="nav('products')" id="n-products"><span class="ni-icon">📦</span>Prodotti<span class="ni-badge" id="pb" style="display:none">0</span></div>
+      <div class="ni" onclick="nav('alerts')" id="n-alerts"><span class="ni-icon">🔔</span>Alert<span class="ni-badge" id="ab" style="display:none">0</span></div>
+      <div class="nav-sec" style="margin-top:6px">Aggiungi</div>
+      <div class="ni" onclick="nav('add')" id="n-add"><span class="ni-icon">➕</span>Nuovo Prodotto</div>
+      <div class="nav-sec" style="margin-top:6px">Config</div>
+      <div class="ni" onclick="nav('platforms')" id="n-platforms"><span class="ni-icon">🌐</span>Piattaforme</div>
+      <div class="ni" onclick="nav('deploy')" id="n-deploy"><span class="ni-icon">🚀</span>Deploy Gratuito</div>
+      <div class="ni" onclick="nav('settings')" id="n-settings"><span class="ni-icon">⚙️</span>Impostazioni</div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="status-row"><div class="sdot" id="sdot"></div><span id="stxt">Backend offline</span></div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="mob-hdr">
+      <div class="mob-logo">Price<span>Hunter</span> Pro</div>
+      <button class="btn btn-primary btn-sm" onclick="nav('add')">+ Aggiungi</button>
+    </div>
+    <div id="topbar">
+      <div id="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()">🔄 Aggiorna</button>
+        <button class="btn btn-primary btn-sm" onclick="nav('add')">+ Prodotto</button>
+      </div>
+    </div>
+    <div id="page"></div>
+  </div>
+
+  <!-- MOBILE NAV -->
+  <nav id="bnav">
+    <div class="bnav-items">
+      <div class="bni active" onclick="nav('dashboard')" id="b-dashboard"><span class="bni-icon">📊</span>Home</div>
+      <div class="bni" onclick="nav('products')" id="b-products"><span class="bni-icon">📦</span>Prodotti<span class="bni-badge" id="bpb" style="display:none">0</span></div>
+      <div class="bni" onclick="nav('add')" id="b-add"><span class="bni-icon">➕</span>Aggiungi</div>
+      <div class="bni" onclick="nav('alerts')" id="b-alerts"><span class="bni-icon">🔔</span>Alert<span class="bni-badge" id="bab" style="display:none">0</span></div>
+      <div class="bni" onclick="nav('settings')" id="b-settings"><span class="bni-icon">⚙️</span>Config</div>
+    </div>
+  </nav>
+</div>
+
+<div id="tc"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   PRICEHUNTER PRO v2.0 — Full JS
+   Supporta piattaforme personalizzate,
+   backend su Render.com, GitHub Pages
+═══════════════════════════════════════════ */
+
+// ─── PIATTAFORME BUILT-IN ─────────────────────
+const BUILTIN_PLATFORMS = {
+  'Amazon':     {color:'#f59e0b',emoji:'📦',domains:['amazon.it','amazon.com','amazon.de','amazon.fr','amazon.es']},
+  'eBay':       {color:'#ef4444',emoji:'🛒',domains:['ebay.it','ebay.com','ebay.de']},
+  'MediaWorld': {color:'#3b82f6',emoji:'📺',domains:['mediaworld.it']},
+  'Unieuro':    {color:'#8b5cf6',emoji:'💻',domains:['unieuro.it']},
+  'Zalando':    {color:'#ec4899',emoji:'👟',domains:['zalando.it','zalando.com']},
+  'Euronics':   {color:'#10b981',emoji:'📱',domains:['euronics.it']},
+  'AliExpress': {color:'#f97316',emoji:'🌏',domains:['aliexpress.com','aliexpress.it']},
+  'Trovaprezzi':{color:'#6366f1',emoji:'🔍',domains:['trovaprezzi.it']},
+};
+
+const CATEGORIES = ['Bambini & Giocattoli','Elettronica','Informatica','Telefonia','TV & Audio',
+  'Elettrodomestici','Giochi & Console','Sport & Fitness','Casa & Giardino','Moda','Libri','Auto & Moto','Altro'];
+const EMOJIS = {'Bambini & Giocattoli':'🧸','Elettronica':'🔌','Informatica':'💻','Telefonia':'📱',
+  'TV & Audio':'📺','Elettrodomestici':'🏠','Giochi & Console':'🎮','Sport & Fitness':'⚽',
+  'Casa & Giardino':'🌱','Moda':'👗','Libri':'📚','Auto & Moto':'🚗','Altro':'🎁'};
+
+// ─── STATE ────────────────────────────────────
+let S = {
+  products: [],
+  customPlatforms: {},   // {name: {color, emoji, domains:[], priceSelector, titleSelector}}
+  settings: {
+    backendUrl: '',       // Render.com URL — configurato dall'utente
+    updateInterval: 60,
+    telegramToken: '',
+    telegramChatId: '',
+  }
+};
+let curPage = 'dashboard';
+let curChart = null;
+
+// ─── STORAGE ──────────────────────────────────
+function save() { localStorage.setItem('ph_v2', JSON.stringify(S)); }
+function load() {
+  try { const d = localStorage.getItem('ph_v2'); if(d) S = {...S,...JSON.parse(d)}; } catch(e){}
+}
+
+// ─── HELPERS ──────────────────────────────────
+const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2);
+const fmtDate = ts => new Date(ts).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'2-digit'});
+const fmtDT = ts => new Date(ts).toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+const fmtP = p => '€'+parseFloat(p).toFixed(2).replace('.',',');
+
+function allPlatforms() {
+  return {...BUILTIN_PLATFORMS, ...S.customPlatforms};
+}
+function detectPlatform(url) {
+  if(!url) return null;
+  for(const [name,cfg] of Object.entries(allPlatforms())) {
+    if((cfg.domains||[]).some(d=>url.includes(d))) return name;
+  }
+  return null;
+}
+function getBest(p) {
+  const prices = Object.values(p.prices||{});
+  if(!prices.length) return null;
+  return Math.min(...prices.map(x=>x.price));
+}
+function getBestStore(p) {
+  const best = getBest(p);
+  if(!best) return null;
+  return Object.entries(p.prices||{}).find(([,v])=>v.price===best)?.[0];
+}
+function getSaving(p) {
+  const cur=getBest(p);
+  const max=Math.max(...(p.history||[]).map(h=>h.price),cur||0);
+  if(!cur||!max||max===cur) return 0;
+  return Math.round((1-cur/max)*100);
+}
+function getDeals() {
+  return S.products.filter(p=>{ const b=getBest(p); return b&&p.targetPrice&&b<=p.targetPrice&&p.alertActive; });
+}
+
+// ─── NAVIGATION ───────────────────────────────
+function nav(page, extra) {
+  curPage=page;
+  document.querySelectorAll('.ni,.bni').forEach(el=>el.classList.remove('active'));
+  const n=document.getElementById(`n-${page}`), b=document.getElementById(`b-${page}`);
+  if(n)n.classList.add('active'); if(b)b.classList.add('active');
+  const titles={dashboard:'Dashboard',products:'I miei Prodotti',alerts:'Alert Prezzi',add:'Aggiungi Prodotto',platforms:'Gestione Piattaforme',deploy:'🚀 Deploy Gratuito',settings:'Impostazioni',detail:'Dettaglio Prodotto'};
+  const tt=document.getElementById('topbar-title'); if(tt) tt.textContent=titles[page]||page;
+  if(curChart&&page!=='detail'){curChart.destroy();curChart=null;}
+  const R={dashboard:renderDash,products:renderProducts,alerts:renderAlerts,add:renderAdd,platforms:renderPlatforms,deploy:renderDeploy,settings:renderSettings};
+  if(page==='detail') renderDetail(extra);
+  else if(R[page]) R[page]();
+  updateBadges();
+}
+function updateBadges() {
+  const pc=S.products.length, fire=getDeals().length;
+  ['pb','bpb'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent=pc;el.style.display=pc>0?'':'none'});
+  ['ab','bab'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent=fire;el.style.display=fire>0?'':'none'});
+}
+
+// ─── DASHBOARD ────────────────────────────────
+function renderDash() {
+  const deals=getDeals();
+  const top=[...S.products].filter(p=>getBest(p)).sort((a,b)=>getSaving(b)-getSaving(a)).slice(0,5);
+  document.getElementById('page').innerHTML=`
+  <div class="stats-grid">
+    <div class="stat-card sc-cyan"><div class="stat-lbl">Prodotti tracciati</div><div class="stat-val sv-cyan">${S.products.length}</div><div class="stat-sub">su ${Object.keys(allPlatforms()).length} piattaforme</div></div>
+    <div class="stat-card sc-red"><div class="stat-lbl">🎯 Target raggiunti</div><div class="stat-val sv-red">${deals.length}</div><div class="stat-sub">sotto il prezzo target</div></div>
+    <div class="stat-card sc-green"><div class="stat-lbl">Alert attivi</div><div class="stat-val sv-green">${S.products.filter(p=>p.alertActive).length}</div><div class="stat-sub">in monitoraggio</div></div>
+    <div class="stat-card sc-yellow"><div class="stat-lbl">Store personalizzati</div><div class="stat-val sv-yellow">${Object.keys(S.customPlatforms).length}</div><div class="stat-sub">aggiunti da te</div></div>
+  </div>
+  <div class="g2 mb22">
+    <div class="card">
+      <div class="sh mb12"><div class="sh-title">🔥 Offerte attive — Target raggiunto</div><span class="badge br">${deals.length}</span></div>
+      ${deals.length?`<div class="deals-list">${deals.slice(0,4).map(p=>{const b=getBest(p),st=getBestStore(p),sv=getSaving(p);return`<div class="deal-row" onclick="nav('detail','${p.id}')"><span class="deal-em">${p.emoji||'🎁'}</span><div class="deal-info"><div class="deal-nm">${p.name}</div><div class="deal-store">${st||'—'}</div></div><div style="text-align:right"><div class="deal-price">${fmtP(b)}</div>${sv>0?`<div class="deal-sav">-${sv}%</div>`:''}</div><div class="deal-chev">›</div></div>`;}).join('')}</div>`:`<div class="empty-state" style="padding:24px 0"><div class="es-icon" style="font-size:28px">🎯</div><div class="es-title">Nessun target raggiunto</div><div class="es-sub">Imposta un prezzo target sui tuoi prodotti</div></div>`}
+    </div>
+    <div class="card">
+      <div class="sh mb12"><div class="sh-title">📉 Migliori sconti</div><span class="badge bc">${top.length}</span></div>
+      ${top.length?`<div class="deals-list">${top.map(p=>{const b=getBest(p),sv=getSaving(p);return`<div class="deal-row" onclick="nav('detail','${p.id}')"><span class="deal-em">${p.emoji||'🎁'}</span><div class="deal-info"><div class="deal-nm">${p.name}</div><div class="deal-store">${p.category}</div></div><div style="text-align:right"><div class="deal-price">${fmtP(b)}</div>${sv>0?`<div class="deal-sav">-${sv}%</div>`:''}</div><div class="deal-chev">›</div></div>`;}).join('')}</div>`:`<div class="empty-state" style="padding:24px 0"><div class="es-icon" style="font-size:28px">📦</div><div class="es-title">Nessun prodotto ancora</div><div class="es-sub" style="margin-bottom:10px">Inizia ad aggiungerne uno</div><button class="btn btn-primary btn-sm" onclick="nav('add')">+ Aggiungi ora</button></div>`}
+    </div>
+  </div>
+  <div class="card">
+    <div class="sh mb12"><div class="sh-title">🌐 Piattaforme attive</div><button class="btn btn-violet btn-sm" onclick="nav('platforms')">+ Aggiungi store</button></div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px">${Object.entries(allPlatforms()).map(([name,cfg])=>{const cnt=S.products.filter(p=>Object.keys(p.prices||{}).includes(name)).length;return`<div style="background:var(--s2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 12px;display:flex;align-items:center;gap:7px"><span>${cfg.emoji}</span><span style="font-size:12px;font-weight:600">${name}</span>${cnt>0?`<span class="badge bc" style="font-size:9px">${cnt}</span>`:''}</div>`;}).join('')}</div>
+  </div>`;
+}
+
+// ─── PRODUCTS ─────────────────────────────────
+function renderProducts() {
+  const pg=document.getElementById('page');
+  if(!S.products.length){
+    pg.innerHTML=`<div class="empty-state"><div class="es-icon">📦</div><div class="es-title">Nessun prodotto tracciato</div><div class="es-sub">Aggiungi il primo prodotto da monitorare</div><button class="btn btn-primary" onclick="nav('add')">+ Aggiungi Prodotto</button></div>`;return;
+  }
+  pg.innerHTML=`<div class="sh mb12"><div class="sh-title">${S.products.length} prodott${S.products.length===1?'o':'i'} tracciati</div><button class="btn btn-ghost btn-sm" onclick="nav('add')">+ Aggiungi</button></div><div class="products-grid">${S.products.map(p=>pcCard(p)).join('')}</div>`;
+}
+function pcCard(p) {
+  const b=getBest(p),bs=getBestStore(p),sv=getSaving(p),fire=b&&p.targetPrice&&b<=p.targetPrice&&p.alertActive;
+  const stores=Object.entries(p.prices||{}).sort((a,c)=>a[1].price-c[1].price);
+  return`<div class="pc ${fire?'fire':''}" onclick="nav('detail','${p.id}')">
+    <div class="pc-hdr"><div class="pc-em">${p.emoji||'🎁'}</div><div><div class="pc-nm" title="${p.name}">${p.name}</div><div class="pc-cat">${p.category}</div></div></div>
+    <div class="pc-prices">${stores.slice(0,3).map(([s,d])=>`<div class="pc-pr"><span class="pc-store">${allPlatforms()[s]?.emoji||''} ${s}</span><span class="pc-amt ${s===bs?'best':''}">${fmtP(d.price)}</span></div>`).join('')}${!stores.length?`<div class="xs muted">Nessun prezzo</div>`:''}</div>
+    <div class="pc-foot"><div class="xs muted">Target: <span style="color:var(--yellow);font-family:var(--mono)">${p.targetPrice?fmtP(p.targetPrice):'—'}</span>${sv>0?` · <span style="color:var(--green)">-${sv}%</span>`:''}</div><div class="alert-badge ${p.alertActive?'ab-on':'ab-off'}">${p.alertActive?'🔔 ON':'🔕 OFF'}</div></div>
+  </div>`;
+}
+
+// ─── ADD PRODUCT ──────────────────────────────
+let srC=1, urC=1;
+function renderAdd() {
+  srC=1; urC=1;
+  document.getElementById('page').innerHTML=`<div style="max-width:580px;margin:0 auto">
+  <div class="card mb12">
+    <div style="font-size:14px;font-weight:700;mb4">➕ Aggiungi Prodotto</div>
+    <div class="xs muted mt8">Inserisci il nome, i prezzi per store e l'URL per lo scraping automatico</div>
+  </div>
+  <div class="card">
+    <div class="fg"><label class="fl">Nome Prodotto *</label><input id="f-nm" class="fi" placeholder="es. LEGO City 60353 Animali Selvatici"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Categoria</label><select id="f-cat" class="fs">${CATEGORIES.map(c=>`<option value="${c}">${EMOJIS[c]||''} ${c}</option>`).join('')}</select></div>
+      <div class="fg"><label class="fl">Prezzo Target Alert (€)</label><input id="f-tgt" class="fi" type="number" step="0.01" placeholder="es. 45.00"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="fw7 xs muted mb12" style="text-transform:uppercase;letter-spacing:.1em">Prezzi per Store</div>
+    <div id="sr-wrap">${srRow(0)}</div>
+    <button class="btn btn-ghost btn-sm mb12" onclick="addSrRow()">+ Store</button>
+    <div class="divider"></div>
+    <div class="fw7 xs muted mb12" style="text-transform:uppercase;letter-spacing:.1em">URL Prodotto (per scraping auto)</div>
+    <div id="ur-wrap">${urRow(0)}</div>
+    <button class="btn btn-ghost btn-sm mb12" onclick="addUrRow()">+ URL</button>
+    <div class="fg mt8"><label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="f-al" checked style="width:15px;height:15px;accent-color:var(--accent)"><span style="font-size:13px;font-weight:500">Attiva alert prezzi</span></label></div>
+    <div style="display:flex;gap:9px;margin-top:6px">
+      <button class="btn btn-ghost" onclick="nav('products')" style="flex:1">Annulla</button>
+      <button class="btn btn-primary" onclick="saveProduct()" style="flex:2">✓ Salva Prodotto</button>
+    </div>
+  </div></div>`;
+}
+function srRow(i) {
+  const opts=Object.keys(allPlatforms()).map(n=>`<option value="${n}">${allPlatforms()[n].emoji} ${n}</option>`).join('');
+  return`<div class="fr" id="sr-${i}" style="margin-bottom:8px"><select class="fs" id="sr-s-${i}"><option value="">— Store —</option>${opts}</select><div style="display:flex;gap:5px"><input class="fi" id="sr-p-${i}" type="number" step="0.01" placeholder="Prezzo €" style="flex:1">${i>0?`<button class="btn btn-danger btn-sm" style="padding:7px 9px" onclick="document.getElementById('sr-${i}').remove()">✕</button>`:''}</div></div>`;
+}
+function urRow(i) {
+  return`<div class="fr" id="ur-${i}" style="margin-bottom:8px"><input class="fi" id="ur-u-${i}" type="url" placeholder="https://www.toycenter.it/prodotto/..." style="flex:1"><div style="display:flex;gap:5px"><select class="fs" id="ur-s-${i}" style="max-width:140px"><option value="">Auto-detect</option>${Object.keys(allPlatforms()).map(n=>`<option>${n}</option>`).join('')}</select>${i>0?`<button class="btn btn-danger btn-sm" style="padding:7px 9px" onclick="document.getElementById('ur-${i}').remove()">✕</button>`:''}</div></div>`;
+}
+function addSrRow(){document.getElementById('sr-wrap').insertAdjacentHTML('beforeend',srRow(srC++));}
+function addUrRow(){document.getElementById('ur-wrap').insertAdjacentHTML('beforeend',urRow(urC++));}
+
+function saveProduct() {
+  const name=document.getElementById('f-nm')?.value?.trim();
+  if(!name){toast('Inserisci il nome del prodotto','e');return;}
+  const category=document.getElementById('f-cat')?.value||'Altro';
+  const targetPrice=parseFloat(document.getElementById('f-tgt')?.value)||null;
+  const alertActive=document.getElementById('f-al')?.checked??true;
+  const prices={};
+  for(let i=0;i<srC;i++){
+    if(!document.getElementById(`sr-${i}`)) continue;
+    const s=document.getElementById(`sr-s-${i}`)?.value;
+    const p=parseFloat(document.getElementById(`sr-p-${i}`)?.value);
+    if(s&&!isNaN(p)) prices[s]={price:p,updatedAt:Date.now()};
+  }
+  const urls={};
+  for(let i=0;i<urC;i++){
+    if(!document.getElementById(`ur-${i}`)) continue;
+    const u=document.getElementById(`ur-u-${i}`)?.value?.trim();
+    let s=document.getElementById(`ur-s-${i}`)?.value;
+    if(u){if(!s) s=detectPlatform(u)||''; if(s) urls[s]=u;}
+  }
+  const history=Object.entries(prices).map(([store,data])=>({ts:Date.now(),price:data.price,store}));
+  const product={id:uid(),name,category,emoji:EMOJIS[category]||'🎁',targetPrice,alertActive,prices,urls,history,createdAt:Date.now(),updatedAt:Date.now()};
+  S.products.push(product); save();
+  // Register on backend
+  if(S.settings.backendUrl) registerOnBackend(product);
+  const best=getBest(product);
+  if(best&&targetPrice&&best<=targetPrice) toast(`🎯 "${name}" già sotto target! ${fmtP(best)}`,'s');
+  else toast(`✓ "${name}" aggiunto!`,'s');
+  srC=1; urC=1; nav('products');
+}
+
+// ─── DETAIL ───────────────────────────────────
+function renderDetail(id) {
+  const p=S.products.find(x=>x.id===id);
+  if(!p){nav('products');return;}
+  const best=getBest(p),bs=getBestStore(p),sv=getSaving(p);
+  const stores=Object.entries(p.prices||{}).sort((a,b)=>a[1].price-b[1].price);
+  document.getElementById('page').innerHTML=`
+  <button class="btn btn-ghost btn-sm mb12" onclick="nav('products')">← Prodotti</button>
+  <div class="card mb12">
+    <div class="det-hdr">
+      <div class="det-em">${p.emoji||'🎁'}</div>
+      <div style="flex:1">
+        <div class="det-nm">${p.name}</div>
+        <div class="det-meta">
+          <span class="tag t-cat">${p.category}</span>
+          <span class="tag ${p.alertActive?'t-on':'t-off'}">${p.alertActive?'🔔 Alert ON':'🔕 Alert OFF'}</span>
+          ${sv>0?`<span class="tag" style="background:#2ed57315;color:var(--green);border:1px solid #2ed57328">-${sv}% dal max</span>`:''}
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openEditTarget('${p.id}')">🎯 Modifica Target</button>
+          <button class="btn btn-ghost btn-sm" onclick="openAddPrice('${p.id}')">📊 Aggiorna Prezzo</button>
+          <button class="btn btn-ghost btn-sm" onclick="scrapeProduct('${p.id}')">🔄 Scraping Auto</button>
+          <button class="btn btn-danger btn-sm" onclick="delProduct('${p.id}')">🗑 Elimina</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sh mb12"><div class="sh-title">💰 Prezzi per Store</div>${best?`<span class="badge bg">Best: ${fmtP(best)} su ${bs}</span>`:''}</div>
+  ${stores.length?`<div class="stores-grid mb18">${stores.map(([s,d])=>{const isBest=s===bs;const pUrl=p.urls?.[s];const maxH=Math.max(...(p.history||[]).filter(h=>h.store===s).map(h=>h.price),d.price);const sv2=maxH>d.price?Math.round((1-d.price/maxH)*100):0;return`<div class="sc ${isBest?'best':''}"><div class="sc-nm"><span>${allPlatforms()[s]?.emoji||'🛒'}</span>${s}${isBest?'<span style="font-size:8px;background:var(--green);color:#04080f;padding:1px 5px;border-radius:3px;font-weight:800;margin-left:4px">BEST</span>':''}</div><div class="sc-price ${isBest?'best':''}">${fmtP(d.price)}</div><div class="sc-meta">${sv2>0?`-${sv2}% dal max · `:''}${d.updatedAt?`upd. ${fmtDate(d.updatedAt)}`:''}</div>${pUrl?`<a href="${pUrl}" target="_blank" class="sc-link">🔗 Vai al prodotto →</a>`:''}</div>`;}).join('')}</div>`:`<div class="card mb18" style="text-align:center;padding:20px"><div class="xs muted">Nessun prezzo ancora</div><button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="openAddPrice('${p.id}')">+ Aggiungi Prezzo</button></div>`}
+  ${p.targetPrice?`<div class="card mb18" style="${best&&best<=p.targetPrice?'border-color:#2ed57344':''}"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div class="xs muted mb4">PREZZO TARGET</div><div style="font-size:20px;font-weight:800;font-family:var(--mono);color:var(--yellow)">${fmtP(p.targetPrice)}</div></div>${best?`<div style="text-align:right"><div class="xs muted mb4">PREZZO MIGLIORE ATTUALE</div><div style="font-size:20px;font-weight:800;font-family:var(--mono);color:${best<=p.targetPrice?'var(--green)':'var(--text)'}">${fmtP(best)}</div>${best<=p.targetPrice?`<div class="xs" style="color:var(--green);font-weight:700">✓ TARGET RAGGIUNTO!</div>`:`<div class="xs muted">mancano ${fmtP(best-p.targetPrice)}</div>`}</div>`:''}</div></div>`:''}
+  ${p.history&&p.history.length>1?`<div class="card mb18"><div class="sh mb12"><div class="sh-title">📈 Storico Prezzi</div><span class="badge bc">${p.history.length} rilevamenti</span></div><div class="chart-wrap"><canvas id="pchart"></canvas></div></div>`:''}
+  ${p.history&&p.history.length?`<div class="card"><div class="sh mb12"><div class="sh-title">📋 Storico completo</div></div><div class="hist-list">${[...p.history].reverse().slice(0,20).map(h=>`<div class="hist-row"><span class="hist-date">${fmtDT(h.ts)}</span><span class="hist-store">${allPlatforms()[h.store]?.emoji||''} ${h.store}</span><span class="hist-price">${fmtP(h.price)}</span></div>`).join('')}</div></div>`:''}`;
+  if(p.history&&p.history.length>1) setTimeout(()=>drawChart(p),60);
+}
+
+function drawChart(p) {
+  const ctx=document.getElementById('pchart');if(!ctx)return;
+  if(curChart){curChart.destroy();}
+  const stores=[...new Set(p.history.map(h=>h.store))];
+  const colors=['#00e5ff','#2ed573','#ffa502','#ff4757','#a78bfa','#ec4899'];
+  const allDates=[...new Set(p.history.map(h=>{const d=new Date(h.ts);return`${d.getDate()}/${d.getMonth()+1}`}))];
+  const datasets=stores.map((store,i)=>{
+    const sh=p.history.filter(h=>h.store===store);
+    const data=allDates.map(date=>{const e=sh.find(h=>{const d=new Date(h.ts);return`${d.getDate()}/${d.getMonth()+1}`===date;});return e?e.price:null;});
+    return{label:store,data,borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'18',borderWidth:2,pointRadius:4,pointHoverRadius:6,fill:false,tension:.3,spanGaps:true};
+  });
+  if(p.targetPrice) datasets.push({label:'Target',data:allDates.map(()=>p.targetPrice),borderColor:'#ffa50288',borderWidth:1.5,borderDash:[6,4],pointRadius:0,fill:false});
+  curChart=new Chart(ctx,{type:'line',data:{labels:allDates,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b88a8',font:{family:"'JetBrains Mono',monospace",size:10},boxWidth:10}},tooltip:{backgroundColor:'#0c1322',borderColor:'#1e3052',borderWidth:1,titleColor:'#e8edf5',bodyColor:'#6b88a8',callbacks:{label:ctx=>` ${ctx.dataset.label}: €${ctx.parsed.y?.toFixed(2)||'—'}`}}},scales:{x:{grid:{color:'#1e305218'},ticks:{color:'#4a6080',font:{size:10}}},y:{grid:{color:'#1e305218'},ticks:{color:'#4a6080',font:{size:10},callback:v=>'€'+v}}}}});
+}
+
+// ─── ALERTS ───────────────────────────────────
+function renderAlerts() {
+  const fired=getDeals();
+  document.getElementById('page').innerHTML=`
+  ${fired.length?`<div class="card mb18" style="border-color:#2ed57344;background:#052e1615"><div class="sh mb12"><div class="sh-title" style="color:var(--green)">🎯 TARGET RAGGIUNTO</div><span class="badge bg">${fired.length}</span></div><div class="alerts-list">${fired.map(p=>{const b=getBest(p),s=getBestStore(p);return`<div class="al fired"><span class="al-em">${p.emoji||'🎁'}</span><div class="al-info"><div class="al-nm">${p.name}</div><div class="al-det">${s||'—'} · ${fmtP(b)}</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--green)">${fmtP(b)}</div><div class="xs" style="color:var(--green)">✓ sotto ${fmtP(p.targetPrice)}</div></div></div>`;}).join('')}</div></div>`:''}
+  <div class="card"><div class="sh mb12"><div class="sh-title">🔔 Tutti gli Alert</div><span class="badge bc">${S.products.filter(p=>p.alertActive).length} attivi</span></div>
+  ${S.products.length?`<div class="alerts-list">${S.products.map(p=>{const b=getBest(p),isFired=b&&p.targetPrice&&b<=p.targetPrice;return`<div class="al ${isFired?'fired':''}"><span class="al-em">${p.emoji||'🎁'}</span><div class="al-info"><div class="al-nm">${p.name}</div><div class="al-det">${b?`Attuale: ${fmtP(b)}`:'Nessun prezzo'}${p.targetPrice?` · Target: ${fmtP(p.targetPrice)}`:''}</div></div><div style="text-align:right;min-width:68px">${p.targetPrice?`<div style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--yellow)">${fmtP(p.targetPrice)}</div>`:'<div class="xs muted">No target</div>'}</div><label class="toggle"><input type="checkbox" ${p.alertActive?'checked':''} onchange="toggleAlert('${p.id}',this.checked)"><div class="t-sl"></div></label></div>`;}).join('')}</div>`:`<div class="empty-state" style="padding:28px 0"><div class="es-icon">🔔</div><div class="es-title">Nessun alert</div><div class="es-sub">Aggiungi prodotti e imposta un prezzo target</div><button class="btn btn-primary" onclick="nav('add')">+ Aggiungi</button></div>`}
+  </div>`;
+}
+function toggleAlert(id,val){const p=S.products.find(p=>p.id===id);if(!p)return;p.alertActive=val;save();updateBadges();toast(val?'🔔 Alert attivato':'🔕 Alert disattivato','i');}
+
+// ─── PLATFORMS MANAGER ────────────────────────
+function renderPlatforms() {
+  const custom=Object.entries(S.customPlatforms);
+  document.getElementById('page').innerHTML=`
+  <div class="card mb18">
+    <div class="sh mb12"><div class="sh-title">🏪 Store Personalizzati</div><button class="btn btn-violet btn-sm" onclick="openAddPlatform()">+ Aggiungi Store</button></div>
+    <div class="xs muted mb12" style="line-height:1.7">
+      Aggiungi qualsiasi negozio online: <strong style="color:var(--text)">ToyCenter, Bimbostore, Prenatal, ecc.</strong><br>
+      Inserisci il dominio e il <strong style="color:var(--text)">selettore CSS</strong> del prezzo — il backend farà il resto.
+    </div>
+    ${custom.length?`<div class="plat-grid">${custom.map(([name,cfg])=>`<div class="plat-card custom"><button class="del-btn" onclick="delPlatform('${name}')">✕</button><div class="plat-em">${cfg.emoji||'🛒'}</div><div class="plat-nm">${name}</div><div class="plat-domain">${(cfg.domains||[]).join(', ')}</div>${cfg.priceSelector?`<div class="plat-sel">CSS: ${cfg.priceSelector}</div>`:'<div class="xs muted">Nessun selettore CSS</div>'}<span class="plat-badge pb-custom">Custom</span></div>`).join('')}</div>`:`<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Nessuno store personalizzato ancora</div>`}
+  </div>
+  <div class="card">
+    <div class="sh mb12"><div class="sh-title">✅ Store Built-in</div><span class="badge bc">${Object.keys(BUILTIN_PLATFORMS).length}</span></div>
+    <div class="plat-grid">${Object.entries(BUILTIN_PLATFORMS).map(([name,cfg])=>`<div class="plat-card"><div class="plat-em">${cfg.emoji}</div><div class="plat-nm">${name}</div><div class="plat-domain">${cfg.domains.join(', ')}</div><span class="plat-badge pb-builtin">Built-in</span></div>`).join('')}</div>
+  </div>
+  <div class="card mt8" style="border-color:var(--yellow)22">
+    <div class="fw7 mb8">💡 Come trovare il selettore CSS del prezzo</div>
+    <div class="xs muted" style="line-height:1.8">
+      1. Apri la pagina prodotto del negozio su Chrome/Safari<br>
+      2. Clicca col destro sul <strong style="color:var(--text)">prezzo</strong> → "Ispeziona elemento"<br>
+      3. Nell'inspector, clicca col destro sull'elemento evidenziato → <strong style="color:var(--text)">"Copy → Copy selector"</strong><br>
+      4. Incolla qui il selettore copiato<br><br>
+      <strong style="color:var(--yellow)">Esempi comuni:</strong>
+    </div>
+    <div class="code-block">.product-price .price
+[data-testid="price"] span
+#priceblock_ourprice
+.price-box .final-price
+span[itemprop="price"]</div>
+  </div>`;
+}
+function openAddPlatform() {
+  const h=`<div class="mo" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-hdr"><div class="modal-ttl">🏪 Aggiungi Store Personalizzato</div><button class="modal-x" onclick="closeModal()">✕</button></div><div class="modal-body">
+  <div class="fg"><label class="fl">Nome Store *</label><input id="m-pnm" class="fi" placeholder="es. ToyCenter"></div>
+  <div class="fg"><label class="fl">Emoji</label><input id="m-pem" class="fi" placeholder="🧸" style="font-size:20px;text-align:center" maxlength="2" value="🛒"></div>
+  <div class="fg"><label class="fl">Dominio *</label><input id="m-pdom" class="fi" placeholder="es. toycenter.it" style="font-family:var(--mono)"><div class="fi-note">Solo il dominio senza https:// (es. <code>toycenter.it</code>)</div></div>
+  <div class="fg"><label class="fl">Selettore CSS Prezzo *</label><input id="m-psel" class="fi" placeholder="es. .product-price .price" style="font-family:var(--mono)"><div class="fi-note">Click destro sul prezzo → Ispeziona → Copy selector</div></div>
+  <div class="fg"><label class="fl">Selettore CSS Titolo (opzionale)</label><input id="m-ptsel" class="fi" placeholder="es. h1.product-name" style="font-family:var(--mono)"></div>
+  <div style="display:flex;gap:8px;margin-top:4px"><button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Annulla</button><button class="btn btn-primary" onclick="savePlatform()" style="flex:2">✓ Aggiungi Store</button></div>
+  </div></div></div>`;
+  document.body.insertAdjacentHTML('beforeend',h);
+}
+function savePlatform() {
+  const name=document.getElementById('m-pnm')?.value?.trim();
+  const emoji=document.getElementById('m-pem')?.value?.trim()||'🛒';
+  const domain=document.getElementById('m-pdom')?.value?.trim();
+  const priceSelector=document.getElementById('m-psel')?.value?.trim();
+  const titleSelector=document.getElementById('m-ptsel')?.value?.trim()||'h1';
+  if(!name||!domain||!priceSelector){toast('Compila nome, dominio e selettore CSS','e');return;}
+  S.customPlatforms[name]={emoji,domains:[domain],priceSelector,titleSelector,color:'#a78bfa',custom:true};
+  save(); closeModal(); nav('platforms');
+  toast(`✓ Store "${name}" aggiunto!`,'s');
+  // Register on backend
+  if(S.settings.backendUrl) syncPlatformsToBackend();
+}
+function delPlatform(name) {
+  if(!confirm(`Rimuovere lo store "${name}"?`)) return;
+  delete S.customPlatforms[name]; save(); nav('platforms');
+  toast(`Store "${name}" rimosso`,'i');
+}
+
+// ─── DEPLOY GUIDE ─────────────────────────────
+function renderDeploy() {
+  const beUrl=S.settings.backendUrl||'Non ancora configurato';
+  document.getElementById('page').innerHTML=`
+  <div class="card mb18" style="border-color:var(--accent)22;background:linear-gradient(135deg,#00e5ff08,transparent)">
+    <div style="font-size:15px;font-weight:700;mb4">🚀 Deploy Gratuito — iPhone ovunque, senza PC</div>
+    <div class="xs muted mt8">Segui questi 3 step una sola volta. L'app funzionerà 24/7 su iPhone ovunque tu sia.</div>
+  </div>
+
+  <div class="card mb14">
+    <div class="sh mb12"><div class="sh-title" style="color:var(--accent)">STEP 1 — Sito web su GitHub Pages (gratuito)</div><span class="badge bc">~5 min</span></div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-content"><div class="step-title">Crea account GitHub</div><div class="step-sub">Vai su <a href="https://github.com" target="_blank" style="color:var(--accent)">github.com</a> → Sign Up → account gratuito</div></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-content"><div class="step-title">Crea nuovo repository</div><div class="step-sub">Clicca "+" → "New repository" → Nome: <code>pricehunter</code> → Public → "Create repository"</div></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-content"><div class="step-title">Carica i 3 file</div><div class="step-sub">Clicca "uploading an existing file" → trascina questi 3 file: <code>index.html</code> <code>manifest.json</code> <code>sw.js</code> → Commit</div></div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-content"><div class="step-title">Attiva GitHub Pages</div><div class="step-sub">Settings → Pages → Branch: <code>main</code> → Save. Dopo 1-2 minuti il sito è su:</div></div></div>
+    <div class="url-display" onclick="copyText('https://tuousername.github.io/pricehunter')">https://tuousername.github.io/pricehunter</div>
+    <div class="fi-note" style="margin-top:6px">Sostituisci <strong>tuousername</strong> con il tuo username GitHub</div>
+  </div>
+
+  <div class="card mb14">
+    <div class="sh mb12"><div class="sh-title" style="color:var(--green)">STEP 2 — Backend su Render.com (gratuito)</div><span class="badge bg">~10 min</span></div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-content"><div class="step-title">Crea account Render.com</div><div class="step-sub">Vai su <a href="https://render.com" target="_blank" style="color:var(--accent)">render.com</a> → Sign Up con GitHub (consigliato)</div></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-content"><div class="step-title">Carica backend.py su GitHub</div><div class="step-sub">Nel tuo repository GitHub, carica anche: <code>backend.py</code> <code>requirements.txt</code> <code>Procfile</code></div></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-content"><div class="step-title">Crea Web Service su Render</div><div class="step-sub">New → Web Service → Collega il tuo repo GitHub → Render configura tutto in automatico</div></div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-content"><div class="step-title">Ottieni l'URL del backend</div><div class="step-sub">Render ti darà un URL tipo:</div></div></div>
+    <div class="url-display" onclick="copyText('https://pricehunter.onrender.com')">https://pricehunter-xxxx.onrender.com</div>
+    <div class="fi-note" style="margin-top:6px">⚠️ Il piano gratuito "dorme" dopo 15min di inattività — si risveglia in ~30 secondi alla prima richiesta. Per uso personale è perfetto.</div>
+  </div>
+
+  <div class="card mb18">
+    <div class="sh mb12"><div class="sh-title" style="color:var(--violet)">STEP 3 — Configura l'app</div><span class="badge bv">1 min</span></div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-content"><div class="step-title">Incolla l'URL del backend</div><div class="step-sub">Vai su Impostazioni ⚙️ → Backend URL → incolla l'URL di Render.com</div></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-content"><div class="step-title">Testa la connessione</div><div class="step-sub">Clicca "Testa Connessione" — se appare verde l'app funziona! ✓</div></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-content"><div class="step-title">Installa su iPhone</div><div class="step-sub">Apri il tuo URL GitHub Pages in <strong>Safari</strong> su iPhone → Condividi → "Aggiungi a schermata Home"</div></div></div>
+  </div>
+
+  <div class="card" style="border-color:var(--yellow)22">
+    <div class="fw7 mb8">📋 Contenuto del file Procfile (scaricato insieme agli altri)</div>
+    <div class="code-block">web: gunicorn backend:app</div>
+    <div class="xs muted mt8">Questo file dice a Render come avviare il backend Python. Deve stare nella stessa cartella di backend.py.</div>
+  </div>`;
+}
+
+// ─── SETTINGS ─────────────────────────────────
+function renderSettings() {
+  const s=S.settings;
+  document.getElementById('page').innerHTML=`<div style="max-width:580px;margin:0 auto">
+  <div style="font-size:14px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px">⚙️ Impostazioni</div>
+
+  <div class="card mb14">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)">🔌 Backend (Render.com)</div>
+    <div class="fg"><label class="fl">URL Backend *</label><input id="s-url" class="fi" value="${s.backendUrl||''}" placeholder="https://pricehunter-xxxx.onrender.com"><div class="fi-note">Ottieni questo URL dopo il deploy su Render.com — <span class="accent" onclick="nav('deploy')" style="cursor:pointer">vedi guida →</span></div></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Aggiorna ogni</label><select id="s-int" class="fs"><option value="15" ${s.updateInterval===15?'selected':''}>15 minuti</option><option value="30" ${s.updateInterval===30?'selected':''}>30 minuti</option><option value="60" ${s.updateInterval===60?'selected':''}>1 ora</option><option value="360" ${s.updateInterval===360?'selected':''}>6 ore</option></select></div>
+      <div class="fg" style="display:flex;align-items:flex-end"><button class="btn btn-ghost" onclick="testBackend()" style="width:100%;justify-content:center">🔌 Testa</button></div>
+    </div>
+    <div id="sdot-detail" class="xs" style="margin-top:4px;color:var(--muted)">Stato backend: <span id="sdot-txt">—</span></div>
+  </div>
+
+  <div class="card mb14">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)">📱 Notifiche Telegram</div>
+    <div class="xs muted mb12" style="line-height:1.7">Ricevi messaggi quando un prezzo scende sotto il target. Crea il bot con <a href="https://t.me/BotFather" target="_blank" style="color:var(--accent)">@BotFather</a>.</div>
+    <div class="fg"><label class="fl">Bot Token</label><input id="s-tgt" class="fi" value="${s.telegramToken||''}" placeholder="1234567890:ABCdef..."></div>
+    <div class="fg"><label class="fl">Chat ID</label><input id="s-tgc" class="fi" value="${s.telegramChatId||''}" placeholder="123456789"><div class="fi-note">Scrivi a <a href="https://t.me/userinfobot" target="_blank" style="color:var(--accent)">@userinfobot</a> per trovare il tuo ID</div></div>
+    <button class="btn btn-ghost btn-sm" onclick="testTelegram()">📨 Invia Test</button>
+  </div>
+
+  <div class="card mb14">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)">💾 Backup Dati</div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Esporta JSON</button>
+      <button class="btn btn-ghost btn-sm" onclick="importData()">⬆ Importa JSON</button>
+      <button class="btn btn-danger btn-sm" onclick="resetAll()">🗑 Reset tutto</button>
+    </div>
+    <div class="xs muted mt8">${S.products.length} prodotti · ${Object.keys(S.customPlatforms).length} store custom · ${Math.round(JSON.stringify(S).length/1024*10)/10} KB</div>
+  </div>
+
+  <div class="card mb18">
+    <div style="font-size:13px;font-weight:700;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--border)">📲 Installa su iPhone</div>
+    <div class="xs muted" style="line-height:1.9">
+      1. Apri questa pagina in <strong style="color:var(--text)">Safari</strong> (non Chrome)<br>
+      2. Tocca il pulsante <strong style="color:var(--text)">Condividi</strong> ↑<br>
+      3. <strong style="color:var(--accent)">"Aggiungi a schermata Home"</strong><br>
+      4. Tocca <strong style="color:var(--text)">Aggiungi</strong> ✓
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveSettings()" style="width:100%;justify-content:center;padding:13px">✓ Salva Impostazioni</button>
+  </div>`;
+}
+function saveSettings(){
+  S.settings.backendUrl=document.getElementById('s-url')?.value?.trim()||'';
+  S.settings.updateInterval=parseInt(document.getElementById('s-int')?.value)||60;
+  S.settings.telegramToken=document.getElementById('s-tgt')?.value||'';
+  S.settings.telegramChatId=document.getElementById('s-tgc')?.value||'';
+  save(); toast('✓ Impostazioni salvate!','s');
+}
+async function testBackend(){
+  const url=document.getElementById('s-url')?.value?.trim()||S.settings.backendUrl;
+  if(!url){toast('Inserisci prima l\'URL del backend','e');return;}
+  const el=document.getElementById('sdot-txt');
+  if(el) el.textContent='Testing...';
+  try{
+    const r=await fetch(`${url}/status`,{signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      const data=await r.json();
+      toast('✅ Backend connesso! '+data.version,'s');
+      document.getElementById('sdot')?.classList.add('on');
+      if(document.getElementById('stxt')) document.getElementById('stxt').textContent='Backend online';
+      if(el) el.innerHTML='<span style="color:var(--green)">✓ Online — '+data.version+'</span>';
+    } else throw new Error();
+  }catch(e){
+    toast('❌ Backend non raggiungibile. Verifica l\'URL o fai il deploy su Render.com.','e');
+    if(el) el.innerHTML='<span style="color:var(--accent2)">✕ Offline</span>';
+  }
+}
+async function testTelegram(){
+  const token=document.getElementById('s-tgt')?.value;
+  const chatId=document.getElementById('s-tgc')?.value;
+  if(!token||!chatId){toast('Inserisci token e chat ID','e');return;}
+  try{
+    const r=await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:'🎯 PriceHunter Pro — Test notifica! Il sistema di alert funziona correttamente.'})});
+    const d=await r.json();
+    if(d.ok) toast('✓ Messaggio Telegram inviato!','s');
+    else toast('Errore Telegram: '+(d.description||'—'),'e');
+  }catch(e){toast('Errore invio Telegram','e');}
+}
+
+// ─── MODALS ───────────────────────────────────
+function openEditTarget(id){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  document.body.insertAdjacentHTML('beforeend',`<div class="mo" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-hdr"><div class="modal-ttl">🎯 Modifica Target</div><button class="modal-x" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="xs muted mb12">${p.name}</div><div class="fg"><label class="fl">Prezzo Target (€)</label><input id="m-t" class="fi" type="number" step="0.01" value="${p.targetPrice||''}"></div><div class="fg"><label style="display:flex;align-items:center;gap:9px;cursor:pointer"><input type="checkbox" id="m-a" ${p.alertActive?'checked':''} style="width:15px;height:15px;accent-color:var(--accent)"><span style="font-size:13px">Alert attivo</span></label></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Annulla</button><button class="btn btn-primary" onclick="saveTarget('${id}')" style="flex:2">✓ Salva</button></div></div></div></div>`);
+}
+function saveTarget(id){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  p.targetPrice=parseFloat(document.getElementById('m-t')?.value)||null;
+  p.alertActive=document.getElementById('m-a')?.checked??true;
+  save();closeModal();nav('detail',id);toast('✓ Target aggiornato!','s');
+}
+
+function openAddPrice(id){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  const opts=Object.keys(allPlatforms()).map(n=>`<option value="${n}">${allPlatforms()[n].emoji} ${n}</option>`).join('');
+  document.body.insertAdjacentHTML('beforeend',`<div class="mo" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-hdr"><div class="modal-ttl">📊 Aggiorna Prezzo</div><button class="modal-x" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="xs muted mb12">${p.name}</div><div class="fg"><label class="fl">Store</label><select id="m-s" class="fs">${opts}</select></div><div class="fg"><label class="fl">Prezzo (€)</label><input id="m-p" class="fi" type="number" step="0.01" placeholder="es. 45.00"></div><div class="fg"><label class="fl">URL prodotto (opzionale)</label><input id="m-u" class="fi" type="url" placeholder="https://..."></div><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Annulla</button><button class="btn btn-primary" onclick="addPrice('${id}')" style="flex:2">✓ Aggiungi</button></div></div></div></div>`);
+}
+function addPrice(id){
+  const p=S.products.find(x=>x.id===id);if(!p)return;
+  const s=document.getElementById('m-s')?.value;
+  const price=parseFloat(document.getElementById('m-p')?.value);
+  const url=document.getElementById('m-u')?.value?.trim();
+  if(!s||isNaN(price)){toast('Inserisci store e prezzo','e');return;}
+  if(!p.prices)p.prices={};
+  p.prices[s]={price,updatedAt:Date.now()};
+  if(!p.history)p.history=[];
+  p.history.push({ts:Date.now(),price,store:s});
+  if(url){if(!p.urls)p.urls={};p.urls[s]=url;}
+  p.updatedAt=Date.now();save();closeModal();nav('detail',id);
+  const best=getBest(p);
+  if(best&&p.targetPrice&&best<=p.targetPrice&&p.alertActive){
+    toast(`🎯 TARGET RAGGIUNTO! ${p.name} a ${fmtP(best)}`,'s');
+    sendTgAlert(p,best);
+  } else toast('✓ Prezzo aggiornato!','s');
+}
+
+function closeModal(){document.querySelector('.mo')?.remove();}
+
+// ─── DELETE ───────────────────────────────────
+function delProduct(id){
+  if(!confirm('Eliminare questo prodotto?'))return;
+  S.products=S.products.filter(p=>p.id!==id);save();
+  toast('Prodotto eliminato','i');nav('products');
+}
+
+// ─── BACKEND API ──────────────────────────────
+async function registerOnBackend(product){
+  const url=S.settings.backendUrl;if(!url)return;
+  try{await fetch(`${url}/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...product,customPlatforms:S.customPlatforms}),signal:AbortSignal.timeout(5000)});}catch(e){}
+}
+async function syncPlatformsToBackend(){
+  const url=S.settings.backendUrl;if(!url)return;
+  try{await fetch(`${url}/sync-platforms`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platforms:S.customPlatforms}),signal:AbortSignal.timeout(5000)});}catch(e){}
+}
+async function scrapeProduct(id){
+  const p=S.products.find(x=>x.id===id);
+  if(!p||!S.settings.backendUrl){toast('Backend non configurato. Vai su Impostazioni.','e');return;}
+  if(!p.urls||!Object.keys(p.urls).length){toast('Nessun URL salvato per questo prodotto. Modificalo e aggiungi URL.','e');return;}
+  toast('⏳ Scraping in corso...','i');
+  try{
+    const r=await fetch(`${S.settings.backendUrl}/scrape-product`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({product:p,customPlatforms:S.customPlatforms}),signal:AbortSignal.timeout(30000)});
+    const d=await r.json();
+    if(d.prices){
+      Object.entries(d.prices).forEach(([store,price])=>{
+        if(!p.prices)p.prices={};
+        p.prices[store]={price,updatedAt:Date.now()};
+        if(!p.history)p.history=[];
+        p.history.push({ts:Date.now(),price,store});
+        if(p.targetPrice&&price<=p.targetPrice&&p.alertActive){sendTgAlert(p,price);}
+      });
+      p.updatedAt=Date.now();save();
+      nav('detail',id);
+      toast(`✓ ${Object.keys(d.prices).length} prezzi aggiornati!`,'s');
+    } else toast('Nessun prezzo trovato','e');
+  }catch(e){toast('Errore scraping. Backend raggiungibile?','e');}
+}
+async function refreshAll(){
+  if(!S.settings.backendUrl){toast('Configura il backend nelle Impostazioni','e');return;}
+  if(!S.products.length){toast('Nessun prodotto da aggiornare','i');return;}
+  toast('⏳ Aggiornamento prezzi...','i');
+  try{
+    const r=await fetch(`${S.settings.backendUrl}/update-all`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products:S.products,customPlatforms:S.customPlatforms}),signal:AbortSignal.timeout(60000)});
+    const d=await r.json();
+    if(d.updates){
+      d.updates.forEach(u=>{
+        const p=S.products.find(x=>x.id===u.id);if(!p)return;
+        Object.entries(u.prices||{}).forEach(([store,price])=>{
+          if(!p.prices)p.prices={};
+          p.prices[store]={price,updatedAt:Date.now()};
+          if(!p.history)p.history=[];
+          p.history.push({ts:Date.now(),price,store});
+          if(p.targetPrice&&price<=p.targetPrice&&p.alertActive) sendTgAlert(p,price);
+        });
+        p.updatedAt=Date.now();
+      });
+      save();nav(curPage);
+    }
+    toast(`✓ ${d.count||0} prodotti aggiornati`,'s');
+  }catch(e){toast('Backend non raggiungibile','e');}
+}
+
+// ─── TELEGRAM ─────────────────────────────────
+async function sendTgAlert(product,price){
+  const{telegramToken:token,telegramChatId:chatId}=S.settings;
+  if(!token||!chatId)return;
+  const msg=`🎯 *PriceHunter Pro Alert!*\n\n*${product.name}*\nPrezzo: *€${parseFloat(price).toFixed(2)}*\nTarget: €${product.targetPrice}\n\n⚡ È il momento di acquistare!`;
+  try{await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,text:msg,parse_mode:'Markdown'})});}catch(e){}
+}
+
+// ─── EXPORT / IMPORT ──────────────────────────
+function exportData(){
+  const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`pricehunter-${new Date().toISOString().slice(0,10)}.json`;a.click();
+  toast('✓ Backup esportato!','s');
+}
+function importData(){
+  const i=document.createElement('input');i.type='file';i.accept='.json';
+  i.onchange=async e=>{try{const t=await e.target.files[0].text();const d=JSON.parse(t);if(d.products){S={...S,...d};save();toast(`✓ Importati ${d.products.length} prodotti!`,'s');nav('dashboard');}}catch(e){toast('File JSON non valido','e');}};
+  i.click();
+}
+function resetAll(){
+  if(!confirm('Cancellare tutti i dati?'))return;
+  localStorage.removeItem('ph_v2');S={products:[],customPlatforms:{},settings:{backendUrl:'',updateInterval:60,telegramToken:'',telegramChatId:''}};
+  toast('Reset completato','i');nav('dashboard');
+}
+
+// ─── COPY UTIL ────────────────────────────────
+function copyText(t){navigator.clipboard?.writeText(t).then(()=>toast('Copiato!','i'));}
+
+// ─── TOAST ────────────────────────────────────
+function toast(msg,type='i'){
+  const el=document.createElement('div');
+  el.className=`toast t${type}`;el.textContent=msg;
+  document.getElementById('tc').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ─── PWA ──────────────────────────────────────
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+// ─── INIT ─────────────────────────────────────
+load();nav('dashboard');updateBadges();
+
+// Check backend
+if(S.settings.backendUrl){
+  setTimeout(async()=>{
+    try{const r=await fetch(`${S.settings.backendUrl}/status`,{signal:AbortSignal.timeout(3000)});
+    if(r.ok){document.getElementById('sdot')?.classList.add('on');if(document.getElementById('stxt'))document.getElementById('stxt').textContent='Backend online';}}catch(e){}
+  },800);
+}
+</script>
+</body>
+</html>
